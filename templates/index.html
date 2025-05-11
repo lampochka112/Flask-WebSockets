@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Улучшенный WebSocket Чат</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { font-family: Arial; margin: 0; padding: 20px; background: #f5f5f5; }
+        #chat-container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        #messages { height: 400px; padding: 15px; overflow-y: auto; }
+        .message { margin-bottom: 10px; animation: fadeIn 0.3s; }
+        .message .meta { color: #888; font-size: 0.9em; }
+        .message .text { margin-top: 5px; }
+        #nickname-form, #message-form { display: flex; padding: 10px; }
+        #nickname-input, #message-input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        #nickname-button, #send-button { padding: 8px 15px; margin-left: 10px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .notification { color: #666; text-align: center; font-style: italic; margin: 5px 0; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="nickname-form" style="display: flex;">
+            <input type="text" id="nickname-input" placeholder="Введите ваш никнейм">
+            <button id="nickname-button">Войти</button>
+        </div>
+        <div id="messages"></div>
+        <div id="message-form" style="display: none;">
+            <input type="text" id="message-input" placeholder="Введите сообщение...">
+            <button id="send-button">Отправить</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const messagesDiv = document.getElementById('messages');
+
+        // Установка никнейма
+        document.getElementById('nickname-button').onclick = () => {
+            const nickname = document.getElementById('nickname-input').value.trim();
+            if (nickname) {
+                socket.emit('set_nickname', { nickname });
+                document.getElementById('nickname-form').style.display = 'none';
+                document.getElementById('message-form').style.display = 'flex';
+            }
+        };
+
+        // Отправка сообщения
+        document.getElementById('send-button').onclick = () => {
+            const message = document.getElementById('message-input').value.trim();
+            if (message) {
+                socket.emit('send_message', { message });
+                document.getElementById('message-input').value = '';
+            }
+        };
+
+        // Обработчики событий
+        socket.on('new_message', (data) => {
+            addMessage(`${data.time} <strong>${data.nickname}</strong>: ${data.message}`);
+        });
+
+        socket.on('user_joined', (data) => {
+            addNotification(`🔹 ${data.nickname} присоединился к чату`);
+        });
+
+        socket.on('user_left', (data) => {
+            addNotification(`🔸 ${data.nickname} покинул чат`);
+        });
+
+        // Вспомогательные функции
+        function addMessage(html) {
+            const div = document.createElement('div');
+            div.className = 'message';
+            div.innerHTML = html;
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addNotification(text) {
+            const div = document.createElement('div');
+            div.className = 'notification';
+            div.textContent = text;
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>
